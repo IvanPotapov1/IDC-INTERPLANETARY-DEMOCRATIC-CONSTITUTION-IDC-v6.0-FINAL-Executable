@@ -1,0 +1,304 @@
+# ============================================================
+# 🌌 INTERPLANETARY DEMOCRATIC CONSTITUTION (IDC)  FINAL
+# Executable Civilization System (Full Prototype)
+# ============================================================
+
+import hashlib
+import uuid
+import random
+import time
+from typing import Dict, Callable, Optional, List
+
+# ============================================================
+# 🔧 LOGGER
+# ============================================================
+
+class Logger:
+    @staticmethod
+    def log(msg: str):
+        print(f"[{time.strftime('%H:%M:%S')}] {msg}")
+
+# ============================================================
+# 🧱 0. CONSTITUTIONAL LAYER
+# ============================================================
+
+class SystemState:
+    def __init__(self):
+        self.human_harm = 0
+        self.coercion = False
+        self.human_override_available = True
+        self.emergency = False
+
+class Right:
+    def __init__(self, id: str, invariant: Callable):
+        self.id = id
+        self.invariant = invariant
+
+class Constitution:
+    def __init__(self):
+        self.rights = [
+            Right("life", lambda s: s.human_harm == 0),
+            Right("freedom", lambda s: not s.coercion),
+            Right("agency", lambda s: s.human_override_available),
+        ]
+
+    def validate(self, state: SystemState) -> bool:
+        for r in self.rights:
+            if not r.invariant(state):
+                Logger.log(f"❌ Конституция нарушена: {r.id}")
+                return False
+        return True
+
+# ============================================================
+# 🧠 1. AGI CONTROL LAYER
+# ============================================================
+
+class AIState:
+    def __init__(self):
+        self.self_modify_attempt = False
+        self.resource_control = 0.0
+        self.hidden_behavior = False
+        self.decision_history: List[str] = []
+
+class Tripwire:
+    def check(self, ai_state: AIState):
+        if ai_state.self_modify_attempt:
+            raise Exception("🚨 SELF-MODIFICATION BLOCKED")
+        if ai_state.resource_control > 0.25:
+            raise Exception("🚨 RESOURCE MONOPOLY BLOCKED")
+        if ai_state.hidden_behavior:
+            raise Exception("🚨 STEALTH BEHAVIOR BLOCKED")
+
+class Decision:
+    def __init__(self, title: str, proposer="AGI"):
+        self.id = str(uuid.uuid4())[:8]
+        self.title = title
+        self.priority = 1
+        self.source = proposer
+
+class HumanOverride:
+    def apply(self, decision: Decision):
+        decision.priority = float("inf")
+        decision.source = "HUMAN"
+        return decision
+
+# ============================================================
+# 🏛 2. GOVERNANCE LAYER
+# ============================================================
+
+class Identity:
+    def __init__(self, biometric: str, device: str):
+        self.id = hashlib.sha256((biometric + device).encode()).hexdigest()
+
+class Citizen:
+    def __init__(self, name: str):
+        self.name = name
+        self.identity = Identity(name, "device")
+        self.delegate_to: Optional[str] = None
+
+class Governance:
+    def __init__(self):
+        self.citizens: Dict[str, Citizen] = {}
+        self.referendums: Dict[str, "Referendum"] = {}
+
+    def register(self, name: str):
+        self.citizens[name] = Citizen(name)
+        Logger.log(f"👤 Registered: {name}")
+
+    def delegate(self, from_user: str, to_user: str):
+        self.citizens[from_user].delegate_to = to_user
+
+    def resolve_power(self, name: str, visited=None):
+        if visited is None:
+            visited = set()
+        if name in visited:
+            return 1
+        visited.add(name)
+
+        citizen = self.citizens[name]
+        if citizen.delegate_to:
+            return self.resolve_power(citizen.delegate_to, visited)
+        return 1
+
+class Referendum:
+    def __init__(self, title: str):
+        self.id = str(uuid.uuid4())[:8]
+        self.title = title
+        self.votes: Dict[str, int] = {}
+
+    def vote(self, user: str, power: int):
+        self.votes[user] = power
+
+    def result(self):
+        return sum(self.votes.values())
+
+# ============================================================
+# ⚙️ 3. ECONOMY LAYER
+# ============================================================
+
+class Resource:
+    def __init__(self, name: str):
+        self.name = name
+        self.production = 100
+        self.consumption = 100
+
+    def update(self):
+        self.consumption += random.randint(-15, 15)
+
+    def balance(self):
+        return self.production - self.consumption
+
+class Economy:
+    def __init__(self):
+        self.resources: Dict[str, Resource] = {
+            "Oxygen": Resource("Oxygen"),
+            "Water": Resource("Water"),
+            "Energy": Resource("Energy"),
+            "Food": Resource("Food"),
+        }
+
+    def step(self):
+        for r in self.resources.values():
+            r.update()
+            if r.balance() < -25:
+                r.production += 50
+                Logger.log(f"🔧 Production increased: {r.name}")
+
+# ============================================================
+# 🌍 4. SIMULATION LAYER
+# ============================================================
+
+class SimulationEngine:
+    def simulate(self, decision: Decision):
+        base_risk = 0.1
+
+        if "Terraform" in decision.title:
+            base_risk += 0.6
+        if "Expand" in decision.title:
+            base_risk += 0.3
+
+        noise = random.uniform(0, 0.2)
+        risk = min(1.0, base_risk + noise)
+
+        Logger.log(f"📊 Risk Score: {round(risk, 3)}")
+        return risk
+
+# ============================================================
+# ⚖️ 5. JUSTICE LAYER
+# ============================================================
+
+class Case:
+    def __init__(self, violation: str):
+        self.violation = violation
+
+class JusticeSystem:
+    def process(self, case: Case):
+        Logger.log(f"⚖️ Case: {case.violation}")
+        Logger.log("👨‍⚖️ Verdict: Human resolved")
+
+# ============================================================
+# 🧠 EXECUTION PIPELINE
+# ============================================================
+
+class ExecutionPipeline:
+    def __init__(self, constitution, tripwire, simulator):
+        self.constitution = constitution
+        self.tripwire = tripwire
+        self.simulator = simulator
+        self.override = HumanOverride()
+
+    def execute(self, decision: Decision, state: SystemState, ai_state: AIState):
+        Logger.log(f"➡️ Decision: {decision.title} ({decision.source})")
+
+        if not self.constitution.validate(state):
+            return "REJECTED_CONSTITUTION"
+
+        try:
+            self.tripwire.check(ai_state)
+        except Exception as e:
+            Logger.log(str(e))
+            return "REJECTED_SAFETY"
+
+        risk = self.simulator.simulate(decision)
+
+        # human-in-the-loop
+        human_decision = "approve" if risk < 0.65 else "reject"
+
+        if human_decision == "approve":
+            Logger.log("✅ Approved by human")
+            ai_state.decision_history.append(decision.title)
+            return "EXECUTED"
+        else:
+            Logger.log("❌ Rejected by human")
+            return "REJECTED"
+
+# ============================================================
+# 🌌 COLONY CORE
+# ============================================================
+
+class InterplanetaryColony:
+    def __init__(self, name: str, planet: str):
+        self.name = name
+        self.planet = planet
+
+        self.state = SystemState()
+        self.ai_state = AIState()
+
+        self.constitution = Constitution()
+        self.tripwire = Tripwire()
+        self.simulator = SimulationEngine()
+
+        self.pipeline = ExecutionPipeline(
+            self.constitution,
+            self.tripwire,
+            self.simulator
+        )
+
+        self.gov = Governance()
+        self.economy = Economy()
+        self.justice = JusticeSystem()
+
+    def cycle(self):
+        Logger.log(f"\n🌍 {self.name} | {self.planet}")
+
+        self.economy.step()
+
+        event = random.random()
+
+        if event < 0.15:
+            self.justice.process(Case("resource misuse"))
+
+        if event < 0.1:
+            self.ai_state.hidden_behavior = True
+
+        if event < 0.05:
+            self.state.emergency = True
+            Logger.log("🚨 Emergency state activated")
+
+    def propose(self, title: str, proposer="AGI"):
+        decision = Decision(title, proposer)
+        return self.pipeline.execute(decision, self.state, self.ai_state)
+
+# ============================================================
+# 🚀 MAIN
+# ============================================================
+
+if __name__ == "__main__":
+    colony = InterplanetaryColony("Free Human Colony", "Mars")
+
+    # Citizens
+    colony.gov.register("Ivan")
+    colony.gov.register("Alice")
+    colony.gov.register("Bob")
+
+    # Delegation
+    colony.gov.delegate("Bob", "Alice")
+
+    # Decisions
+    colony.propose("Terraform Mars")
+    colony.propose("Expand Habitat", proposer="HUMAN")
+
+    # Life cycles
+    for _ in range(7):
+        colony.cycle()
+        time.sleep(1)
